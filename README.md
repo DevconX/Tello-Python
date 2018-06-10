@@ -1,9 +1,9 @@
 # Tello-Python
-tello packets prototype
+tello DGI face recognition streaming prototype
 
 ## Requirement
 ```bash
-pip3 install opencv-contrib-python numpy scipy
+pip3 install opencv-contrib-python numpy scipy tensorflow==1.4
 ```
 
 ## How to run
