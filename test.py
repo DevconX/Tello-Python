@@ -62,6 +62,7 @@ def run_cam():
             cap = cv2.VideoCapture('temp.h264')
             while True:
                 try:
+                    last_time = time.time()
                     ret, img = cap.read()
                     boxes_c,_ = mtcnn_detector.detect(img)
                     for u in range(boxes_c.shape[0]):
@@ -71,6 +72,7 @@ def run_cam():
                                                                              int(bbox[2]),
                                                                              'YellowGreen',display_str_list=['face'],
                                                                              use_normalized_coordinates=False)
+                    cv2.putText(img,'%.1f FPS'%(1/(time.time() - last_time)), (0,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
                     cv2.imshow('cam',img)
                     if cv2.waitKey(30) & 0xFF == ord('q'):
                         break
