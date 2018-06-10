@@ -10,3 +10,7 @@ pip3 install opencv-contrib-python numpy scipy tensorflow==1.4
 ```bash
 python3 test.py
 ```
+
+## Output
+
+![alt text](face.png)
