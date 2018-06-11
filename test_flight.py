@@ -25,6 +25,17 @@ detectors[1] = RNet
 ONet = Detector(O_Net, 48, 1, model_path[2])
 detectors[2] = ONet
 mtcnn_detector = MtcnnDetector(detectors=detectors, min_face_size=min_face_size,stride=stride, threshold=thresh, slide_window=slide_window)
+# in cm, etc, assumed same width during flight
+initial_flight_height = 20
+# focal length = (P * D) / W
+# assume D = W
+focal_length = initial_flight_height * 10
+
+def midpoint(x, y):
+    return ((x[0] + y[0]) * 0.5, (x[1] + y[1]) * 0.5)
+
+def distance_to_camera(initial_width, focal_length, virtual_width):
+    return (initial_width * focalLength) / virtual_width
 
 header = b'\x00\x00\x00\x01gM@(\x95\xa0<\x05\xb9\x00\x00\x00\x01h\xee8\x80'
 h264 = []
@@ -67,10 +78,20 @@ def run_cam():
                     boxes_c,_ = mtcnn_detector.detect(img)
                     for u in range(boxes_c.shape[0]):
                         bbox = boxes_c[u, :4]
+                        tl,tr,bl,br = [int(bbox[0]),int(bbox[1])],[int(bbox[2]),int(bbox[1])],[int(bbox[0]),int(bbox[3])],[int(bbox[2]),int(bbox[3])]
+                        (tltrX, tltrY) = midpoint(tl, tr)
+                        (blbrX, blbrY) = midpoint(bl, br)
+                        (tlblX, tlblY) = midpoint(tl, bl)
+                        (trbrX, trbrY) = midpoint(tr, br)
+                        # virtual width
+                        dA = dist.euclidean((tltrX, tltrY), (blbrX, blbrY))
+                        # virtual height
+                        dB = dist.euclidean((tlblX, tlblY), (trbrX, trbrY))
+                        distance = distance_to_camera(initial_flight_height, focal_length, dA)
                         visualization_utils.draw_bounding_box_on_image_array(img,int(bbox[1]),int(bbox[0]),
                                                                              int(bbox[3]),
                                                                              int(bbox[2]),
-                                                                             'YellowGreen',display_str_list=['face'],
+                                                                             'YellowGreen',display_str_list=['face','','distance: %.2fcm'%(distance)],
                                                                              use_normalized_coordinates=False)
                     cv2.putText(img,'%.1f FPS'%(1/(time.time() - last_time)), (0,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
                     cv2.imshow('cam',img)
@@ -90,9 +111,15 @@ command = bytearray.fromhex('9617')
 sock.sendto(b'conn_req:'+bytes(command), ('192.168.10.1',8889))
 sock.sendto(bytes(bytearray.fromhex('cc58007c60250000006c95')), ('192.168.10.1',8889))
 sock.sendto(bytes(bytearray.fromhex('cc600027682000000004fd9b')), ('192.168.10.1',8889))
-try:
-    while True:
-        time.sleep(0.1)
-        sock.sendto(bytes(bytearray.fromhex('cc58007c60250000006c95')), ('192.168.10.1',8889))
-except KeyboardInterrupt:
-    pass
+
+def send_video():
+    try:
+        while True:
+            time.sleep(0.1)
+            sock.sendto(bytes(bytearray.fromhex('cc58007c60250000006c95')), ('192.168.10.1',8889))
+    except KeyboardInterrupt:
+        pass
+
+send_thread = threading.Thread(target=send_video)
+send_thread.daemon=True
+send_thread.start()
