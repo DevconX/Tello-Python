@@ -24,6 +24,7 @@ python3 test_flight_rotate.py
 ## to run a client listen to video streaming using OpenCV
 ```bash
 python3 client.py
+```
 
 ## Output
 
