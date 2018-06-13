@@ -8,7 +8,7 @@ from Detection.detector import Detector
 from Detection.fcn_detector import FcnDetector
 from train_models.mtcnn_model import P_Net, R_Net, O_Net
 import visualization_utils
-from instructions import *
+from instruction import *
 
 thresh = [0.7, 0.1, 0.1]
 min_face_size = 24
