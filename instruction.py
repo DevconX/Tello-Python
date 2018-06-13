@@ -1,5 +1,7 @@
 import crc8
 import crc16
+import time
+import datetime
 
 messageStart   = 0x00cc
 wifiMessage    = 0x001a
@@ -21,7 +23,7 @@ palmLandCommand         = 0x005e
 bounceCommand           = 0x1053
 
 FlipFront = 0
-FlipLeft FlipType = 1
+FlipLeft = 1
 FlipBack = 2
 FlipRight = 3
 FlipForwardLeft = 4
@@ -117,11 +119,11 @@ def left(val):
 
 def clockwise(val):
     global lx
-    lx = = float(val) / 100.0
+    lx = float(val) / 100.0
 
 def counter_clockwise(val):
     global lx
-    lx = = float(val) / 100.0 * -1
+    lx = float(val) / 100.0 * -1
 
 def flip(direction):
     global seq
@@ -152,6 +154,24 @@ def send_stickcommand():
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
     axis1 = int(660.0*rx + 1024.0)
     axis2 = int(660.0*ry + 1024.0)
-	axis3 = int(660.0*ly + 1024.0)
-	axis4 = int(660.0*lx + 1024.0)
-	axis5 = int(throttle)
+    axis3 = int(660.0*ly + 1024.0)
+    axis4 = int(660.0*lx + 1024.0)
+    axis5 = int(throttle)
+    packed = (axis1)&0x7FF | (axis2&0x7FF)<<11 | (0x7FF&axis3)<<22 | (0x7FF&axis4)<<33 | (axis5)<<44
+    array_bytes.append((0xFF&packed).to_bytes(1,byteorder='little'))
+    array_bytes.append((packed>>8&0xFF).to_bytes(1,byteorder='little'))
+    array_bytes.append((packed>>16&0xFF).to_bytes(1,byteorder='little'))
+    array_bytes.append((packed>>24&0xFF).to_bytes(1,byteorder='little'))
+    array_bytes.append((packed>>32&0xFF).to_bytes(1,byteorder='little'))
+    array_bytes.append((packed>>40&0xFF).to_bytes(1,byteorder='little'))
+    now = datetime.datetime.now()
+    array_bytes.append((now.hour).to_bytes(1,byteorder='little'))
+    array_bytes.append((now.minute).to_bytes(1,byteorder='little'))
+    array_bytes.append((now.second).to_bytes(1,byteorder='little'))
+    array_bytes.append((int(time.time() * 10)&0xff).to_bytes(1,byteorder='little'))
+    array_bytes.append((int(time.time() * 10)>>8).to_bytes(4,byteorder='little')[0].to_bytes(1,byteorder='little'))
+    instructions=(crc16.calculate_crc16(array_bytes)).to_bytes(2,byteorder='little')
+    array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
+    return b''.join(array_bytes)
+
+print(send_stickcommand())
