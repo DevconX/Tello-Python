@@ -8,6 +8,7 @@ from Detection.detector import Detector
 from Detection.fcn_detector import FcnDetector
 from train_models.mtcnn_model import P_Net, R_Net, O_Net
 import visualization_utils
+from instructions import *
 
 thresh = [0.7, 0.1, 0.1]
 min_face_size = 24
@@ -39,10 +40,10 @@ def distance_to_camera(initial_width, focal_length, virtual_width):
 
 header = b'\x00\x00\x00\x01gM@(\x95\xa0<\x05\xb9\x00\x00\x00\x01h\xee8\x80'
 h264 = []
-
+port_video = 6038
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 sock_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-sock_video.bind(('192.168.10.3', 6038))
+sock_video.bind(('192.168.10.3', port_video))
 
 def receive_video():
     global h264
@@ -107,19 +108,22 @@ receive_cam_thread = threading.Thread(target=run_cam)
 receive_cam_thread.daemon = True
 receive_cam_thread.start()
 
-command = bytearray.fromhex('9617')
-sock.sendto(b'conn_req:'+bytes(command), ('192.168.10.1',8889))
-sock.sendto(bytes(bytearray.fromhex('cc58007c60250000006c95')), ('192.168.10.1',8889))
-sock.sendto(bytes(bytearray.fromhex('cc600027682000000004fd9b')), ('192.168.10.1',8889))
+sock.sendto(connection_string(port_video), ('192.168.10.1',8889))
+sock.sendto(start_video(), ('192.168.10.1',8889))
+sock.sendto(set_videoencoder_rate(4), ('192.168.10.1',8889))
 
 def send_video():
     try:
         while True:
             time.sleep(0.1)
-            sock.sendto(bytes(bytearray.fromhex('cc58007c60250000006c95')), ('192.168.10.1',8889))
+            sock.sendto(start_video(), ('192.168.10.1',8889))
     except KeyboardInterrupt:
         pass
 
 send_thread = threading.Thread(target=send_video)
 send_thread.daemon=True
 send_thread.start()
+
+sock.sendto(take_off(), ('192.168.10.1',8889))
+time.sleep(5)
+sock.sendto(land(), ('192.168.10.1',8889))

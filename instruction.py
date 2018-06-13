@@ -20,7 +20,18 @@ throwtakeoffCommand     = 0x005d
 palmLandCommand         = 0x005e
 bounceCommand           = 0x1053
 
+FlipFront = 0
+FlipLeft FlipType = 1
+FlipBack = 2
+FlipRight = 3
+FlipForwardLeft = 4
+FlipBackLeft = 5
+FlipBackRight = 6
+FlipForwardRight = 7
+
 seq = 0
+rx, ry, lx, ly = 0, 0, 0, 0
+throttle = 0
 
 def create_packet(cmd, pkt, length):
     l = length + 11
@@ -28,7 +39,7 @@ def create_packet(cmd, pkt, length):
     array_bytes.append(messageStart.to_bytes(1,byteorder='little'))
     array_bytes.append((l << 3).to_bytes(1,byteorder='little'))
     array_bytes.append((0).to_bytes(1,byteorder='little'))
-    digested= crc8.crc8(b''.join(array_bytes[:3])).digest()
+    digested= crc8.calculate_crc8(array_bytes).to_bytes(1,byteorder='little')
     array_bytes.append(digested)
     array_bytes.append((pkt).to_bytes(1,byteorder='little'))
     instructions=(cmd).to_bytes(2,byteorder='little')
@@ -43,7 +54,7 @@ def take_off():
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
     instructions=(crc16.calculate_crc16(array_bytes)).to_bytes(2,byteorder='little')
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
-    return array_bytes
+    return b''.join(array_bytes)
 
 def land():
     global seq
@@ -53,15 +64,15 @@ def land():
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
     instructions=(crc16.calculate_crc16(array_bytes)).to_bytes(2,byteorder='little')
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
-    return array_bytes
+    return b''.join(array_bytes)
 
 def start_video():
-    array_bytes = create_packet(landCommand,0x60, 0)
+    array_bytes = create_packet(videoStartCommand,0x60, 0)
     instructions=(0).to_bytes(2,byteorder='little')
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
     instructions=(crc16.calculate_crc16(array_bytes)).to_bytes(2,byteorder='little')
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
-    return array_bytes
+    return b''.join(array_bytes)
 
 def set_videoencoder_rate(rate):
     global seq
@@ -72,4 +83,75 @@ def set_videoencoder_rate(rate):
     array_bytes.append(rate.to_bytes(1,byteorder='little'))
     instructions=(crc16.calculate_crc16(array_bytes)).to_bytes(2,byteorder='little')
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
+    return b''.join(array_bytes)
+
+def connection_string(port):
+    instructions=port.to_bytes(2,byteorder='little')
+    array_bytes=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
+    array_bytes=b'conn_req:'+b''.join(array_bytes)
     return array_bytes
+
+def up(val):
+    global ly
+    ly = float(val) / 100.0
+
+def down(val):
+    global ly
+    ly = float(val) / 100.0 * -1
+
+def forward(val):
+    global ry
+    ry = float(val) / 100.0
+
+def backward(val):
+    global ry
+    ry = float(val) / 100.0 * -1
+
+def right(val):
+    global rx
+    rx = float(val) / 100.0
+
+def left(val):
+    global rx
+    rx = float(val) / 100.0 * -1
+
+def clockwise(val):
+    global lx
+    lx = = float(val) / 100.0
+
+def counter_clockwise(val):
+    global lx
+    lx = = float(val) / 100.0 * -1
+
+def flip(direction):
+    global seq
+    array_bytes = create_packet(flipCommand,0x70, 1)
+    seq += 1
+    instructions=seq.to_bytes(2,byteorder='little')
+    array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
+    array_bytes.append(direction.to_bytes(1,byteorder='little'))
+    instructions=(crc16.calculate_crc16(array_bytes)).to_bytes(2,byteorder='little')
+    array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
+    return b''.join(array_bytes)
+
+def front_flip():
+    return flip(FlipFront)
+
+def back_flip():
+    return flip(FlipBack)
+
+def right_flip():
+    return flip(FlipRight)
+
+def left_flip():
+    return flip(FlipLeft)
+
+def send_stickcommand():
+    array_bytes = create_packet(stickCommand, 0x60, 11)
+    instructions=(0).to_bytes(2,byteorder='little')
+    array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
+    axis1 = int(660.0*rx + 1024.0)
+    axis2 = int(660.0*ry + 1024.0)
+	axis3 = int(660.0*ly + 1024.0)
+	axis4 = int(660.0*lx + 1024.0)
+	axis5 = int(throttle)
