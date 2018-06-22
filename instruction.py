@@ -64,6 +64,7 @@ def land():
     seq += 1
     instructions=seq.to_bytes(2,byteorder='little')
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
+    array_bytes.append((0).to_bytes(1,byteorder='little'))
     instructions=(crc16.calculate_crc16(array_bytes)).to_bytes(2,byteorder='little')
     array_bytes+=[instructions[0].to_bytes(1,byteorder='little'),instructions[1].to_bytes(1,byteorder='little')]
     return b''.join(array_bytes)

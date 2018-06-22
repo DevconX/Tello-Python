@@ -43,7 +43,7 @@ h264 = []
 port_video = 6038
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 sock_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-sock_video.bind(('192.168.10.3', port_video))
+sock_video.bind(('192.168.10.2', port_video))
 
 def receive_video():
     global h264
@@ -52,62 +52,9 @@ def receive_video():
         if len(data[2:]) not in [8,13]:
             h264.append(data[2:])
 
-def run_cam():
-    global h264
-    while True:
-        k = sum([int(len(i) < 1000) for i in h264])
-        temp = []
-        for i in reversed(range(len(h264))):
-            if len(h264[i]) < 1000:
-                count, temp = 0, [h264[i]]
-                for n in reversed(range(len(h264[:i]))):
-                    if len(h264[n]) < 1000:
-                        count += 1
-                    if count == 3:
-                        break
-                    temp.append(h264[n])
-            break
-        if k > 2:
-            with open('temp.h264','wb') as fopen:
-                fopen.write(header+b''.join(temp[::-1]))
-            h264.clear()
-            cap = cv2.VideoCapture('temp.h264')
-            while True:
-                try:
-                    last_time = time.time()
-                    ret, img = cap.read()
-                    boxes_c,_ = mtcnn_detector.detect(img)
-                    for u in range(boxes_c.shape[0]):
-                        bbox = boxes_c[u, :4]
-                        # tl,tr,bl,br = [int(bbox[0]),int(bbox[1])],[int(bbox[2]),int(bbox[1])],[int(bbox[0]),int(bbox[3])],[int(bbox[2]),int(bbox[3])]
-                        # (tltrX, tltrY) = midpoint(tl, tr)
-                        # (blbrX, blbrY) = midpoint(bl, br)
-                        # (tlblX, tlblY) = midpoint(tl, bl)
-                        # (trbrX, trbrY) = midpoint(tr, br)
-                        # # virtual width
-                        # dA = dist.euclidean((tltrX, tltrY), (blbrX, blbrY))
-                        # # virtual height
-                        # dB = dist.euclidean((tlblX, tlblY), (trbrX, trbrY))
-                        # distance = distance_to_camera(initial_flight_height, focal_length, dA)
-                        distance = 1
-                        visualization_utils.draw_bounding_box_on_image_array(img,int(bbox[1]),int(bbox[0]),
-                                                                             int(bbox[3]),
-                                                                             int(bbox[2]),
-                                                                             'YellowGreen',display_str_list=['face','','distance: %.2fcm'%(distance)],
-                                                                             use_normalized_coordinates=False)
-                    cv2.putText(img,'%.1f FPS'%(1/(time.time() - last_time)), (0,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
-                    cv2.imshow('cam',img)
-                    if cv2.waitKey(30) & 0xFF == ord('q'):
-                        break
-                except:
-                    break
-
 receive_thread = threading.Thread(target=receive_video)
 receive_thread.daemon=True
 receive_thread.start()
-receive_cam_thread = threading.Thread(target=run_cam)
-receive_cam_thread.daemon = True
-receive_cam_thread.start()
 
 sock.sendto(connection_string(port_video), ('192.168.10.1',8889))
 sock.sendto(start_video(), ('192.168.10.1',8889))
@@ -130,7 +77,6 @@ def send_control():
         while True:
             time.sleep(0.01)
             stick = send_stickcommand()
-            print(stick.hex())
             sock.sendto(stick, ('192.168.10.1',8889))
     except KeyboardInterrupt:
         pass
@@ -139,6 +85,61 @@ control_thread = threading.Thread(target=send_control)
 control_thread.daemon=True
 control_thread.start()
 
-sock.sendto(take_off(), ('192.168.10.1',8889))
-time.sleep(10)
-sock.sendto(land(), ('192.168.10.1',8889))
+def send_flight():
+    #sock.sendto(take_off(), ('192.168.10.1',8889))
+    time.sleep(2)
+    print(land())
+    sock.sendto(land(), ('192.168.10.1',8889))
+
+flight_thread = threading.Thread(target=send_flight)
+flight_thread.daemon=True
+flight_thread.start()
+
+while True:
+    k = sum([int(len(i) < 1000) for i in h264])
+    temp = []
+    for i in reversed(range(len(h264))):
+        if len(h264[i]) < 1000:
+            count, temp = 0, [h264[i]]
+            for n in reversed(range(len(h264[:i]))):
+                if len(h264[n]) < 1000:
+                    count += 1
+                if count == 3:
+                    break
+                temp.append(h264[n])
+        break
+    if k > 2:
+        with open('temp.h264','wb') as fopen:
+            fopen.write(header+b''.join(temp[::-1]))
+        h264.clear()
+        cap = cv2.VideoCapture('temp.h264')
+        while True:
+            try:
+                last_time = time.time()
+                ret, img = cap.read()
+                boxes_c,_ = mtcnn_detector.detect(img)
+                for u in range(boxes_c.shape[0]):
+                    bbox = boxes_c[u, :4]
+                    tl,tr,bl,br = [int(bbox[0]),int(bbox[1])],[int(bbox[2]),int(bbox[1])],[int(bbox[0]),int(bbox[3])],[int(bbox[2]),int(bbox[3])]
+                    (tltrX, tltrY) = midpoint(tl, tr)
+                    (blbrX, blbrY) = midpoint(bl, br)
+                    (tlblX, tlblY) = midpoint(tl, bl)
+                    (trbrX, trbrY) = midpoint(tr, br)
+                    print(land())
+                    # virtual width
+                    dA = dist.euclidean((tltrX, tltrY), (blbrX, blbrY))
+                    # virtual height
+                    dB = dist.euclidean((tlblX, tlblY), (trbrX, trbrY))
+                    distance = distance_to_camera(initial_flight_height, focal_length, dA)
+                    print(distance)
+                    visualization_utils.draw_bounding_box_on_image_array(img,int(bbox[1]),int(bbox[0]),
+                                                                         int(bbox[3]),
+                                                                         int(bbox[2]),
+                                                                         'YellowGreen',display_str_list=['face','distance %fcm'%(distance)],
+                                                                         use_normalized_coordinates=False)
+                cv2.putText(img,'%.1f FPS'%(1/(time.time() - last_time)), (0,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+                cv2.imshow('cam',img)
+                if cv2.waitKey(30) & 0xFF == ord('q'):
+                    break
+            except:
+                break

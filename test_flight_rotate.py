@@ -43,7 +43,7 @@ h264 = []
 port_video = 6038
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 sock_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-sock_video.bind(('192.168.10.3', port_video))
+sock_video.bind(('192.168.10.2', port_video))
 
 def receive_video():
     global h264
@@ -140,7 +140,7 @@ control_thread.daemon=True
 control_thread.start()
 
 sock.sendto(take_off(), ('192.168.10.1',8889))
-rotation_seconds = 10
+rotation_seconds = 20
 time.sleep(1)
 for i in range(100):
     clockwise(i)
