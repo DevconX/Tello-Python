@@ -120,22 +120,22 @@ while True:
                 boxes_c,_ = mtcnn_detector.detect(img)
                 for u in range(boxes_c.shape[0]):
                     bbox = boxes_c[u, :4]
-                    tl,tr,bl,br = [int(bbox[0]),int(bbox[1])],[int(bbox[2]),int(bbox[1])],[int(bbox[0]),int(bbox[3])],[int(bbox[2]),int(bbox[3])]
-                    (tltrX, tltrY) = midpoint(tl, tr)
-                    (blbrX, blbrY) = midpoint(bl, br)
-                    (tlblX, tlblY) = midpoint(tl, bl)
-                    (trbrX, trbrY) = midpoint(tr, br)
-                    print(land())
-                    # virtual width
-                    dA = dist.euclidean((tltrX, tltrY), (blbrX, blbrY))
-                    # virtual height
-                    dB = dist.euclidean((tlblX, tlblY), (trbrX, trbrY))
-                    distance = distance_to_camera(initial_flight_height, focal_length, dA)
-                    print(distance)
+                    # tl,tr,bl,br = [int(bbox[0]),int(bbox[1])],[int(bbox[2]),int(bbox[1])],[int(bbox[0]),int(bbox[3])],[int(bbox[2]),int(bbox[3])]
+                    # (tltrX, tltrY) = midpoint(tl, tr)
+                    # (blbrX, blbrY) = midpoint(bl, br)
+                    # (tlblX, tlblY) = midpoint(tl, bl)
+                    # (trbrX, trbrY) = midpoint(tr, br)
+                    # print(land())
+                    # # virtual width
+                    # dA = dist.euclidean((tltrX, tltrY), (blbrX, blbrY))
+                    # # virtual height
+                    # dB = dist.euclidean((tlblX, tlblY), (trbrX, trbrY))
+                    # distance = distance_to_camera(initial_flight_height, focal_length, dA)
+                    # print(distance)
                     visualization_utils.draw_bounding_box_on_image_array(img,int(bbox[1]),int(bbox[0]),
                                                                          int(bbox[3]),
                                                                          int(bbox[2]),
-                                                                         'YellowGreen',display_str_list=['face','distance %fcm'%(distance)],
+                                                                         'YellowGreen',display_str_list=['face'],
                                                                          use_normalized_coordinates=False)
                 cv2.putText(img,'%.1f FPS'%(1/(time.time() - last_time)), (0,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
                 cv2.imshow('cam',img)

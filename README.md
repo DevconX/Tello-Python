@@ -29,3 +29,9 @@ python3 client.py
 ## Output
 
 ![alt text](face.png)
+
+fly and detect face
+
+![alt text](flight-face.png)
+
+[![IMAGE ALT TEXT](https://www.youtube.com/upload_thumbnail?v=Q147BLIRcMs&t=hqdefault&ts=1533213373171)](https://youtu.be/Q147BLIRcMs "Test flight with face recognition using Tensorflow")
